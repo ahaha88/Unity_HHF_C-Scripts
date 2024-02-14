@@ -12,7 +12,13 @@ public class LoseState : PlayerState
     public override void EnterState()
     {
         this.animator.SetTrigger("Lose");
+
+        if (Main.timeLimit > 0f)
+        {
+            GameObject.FindWithTag("env").GetComponent<SceneManager>().Judge(this.player);
+        }
     }
+
     public override void UpdateState()
     {
 

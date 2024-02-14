@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using Unity.Collections.LowLevel.Unsafe;
 using Unity.VisualScripting;
 using UnityEngine;
@@ -27,7 +28,10 @@ public class DamagedState : PlayerState
 
         if (this.player.hitPoint <= 0)
         {
-            this.player.SetState(Player.State.Lose);
+            Time.timeScale = 0.5f;
+
+            if (this.player.isGround == true) // 一定時間後に呼ぶように要変更
+                this.player.SetState(Player.State.Lose);
         }
     }
     public override void UpdateState()

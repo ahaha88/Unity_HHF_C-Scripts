@@ -15,7 +15,6 @@ public class KickState : AttackState
         {
             this.animator.SetTrigger("Kick");
             OnStarted(this.myState);
-
         }
     }
     public override void UpdateState()
@@ -28,6 +27,7 @@ public class KickState : AttackState
 
     }
 
+    // コールバックが複数回登録されるのを防ぐため何もしないメソッド SetAnimattionEvent(){}を記述する必要がある。
     public override void SetAnimationEvent()
     {
 

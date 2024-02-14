@@ -14,7 +14,7 @@ public class PunchState : AttackState
         if (this.player.attackPhase == 0)
         {
             this.animator.SetTrigger("Punch");
-            this.OnStarted(this.myState);
+            OnStarted(this.myState);
         }
     }
     public override void UpdateState()
@@ -27,13 +27,6 @@ public class PunchState : AttackState
 
     }
 
-    public override void SetAnimationEvent()
-    {
-        foreach (var behaviour in this.player.aab)
-        {
-            behaviour.SetAnimEnterListener(SetCount);
-            behaviour.SetAnimUpdateListener(OnAnimUpdate);
-        }
-    }
-
+    // SetAnimattionEvent()はAttackState()に記述し、このクラスには何も書かない
+    // PlayerクラスのGetAllStateConponent()で登録されるときに複数回呼ばれるのを防ぐため派生クラスであるKickStateとThrowStateには何もしないメソッド SetAnimattionEvent(){}を記述する必要がある。
 }

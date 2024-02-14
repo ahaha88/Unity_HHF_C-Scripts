@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using Unity.VisualScripting;
 using UnityEngine;
 
 /// <summary>
@@ -12,6 +13,14 @@ public static class Main
     public enum Character
     {
         Bunny,
+    }
+
+    public enum GameState
+    {
+        Ready,       // 試合開始前
+        NowFighting, // 戦闘中
+        Finished,    // 試合終了
+        Pause        // ポーズ
     }
 
     // 動的パラメータの参照に必要 以下の配列では０番目に１P、１番目に２Pの情報が格納されていることに注意
@@ -40,11 +49,14 @@ public static class Main
 
 
     // 変数
+    public static GameState currentGameState { get; set; }
     public static float distance { get; private set; }
 
     public static Vector3 midPoint { get; private set; }
 
-    public static float timeLimit { get; private set; }
+    public static float timeLimit { get; set; } // シーンマネージャーでアップデート
+
+    public static int round {  get; set; } 
 
 
 
@@ -78,8 +90,6 @@ public static class Main
     {
         distance = Mathf.Abs(players[0].transform.position.x - players[1].transform.position.x);
         midPoint = new Vector3((players[0].transform.position.x + players[1].transform.position.x) / 2f, (players[0].transform.position.y + players[1].transform.position.y) / 2f, 0f);
-
-        timeLimit -= Time.deltaTime;
 
         players[0].isLeft = players[0].transform.position.x <= players[1].transform.position.x ? true : false;
         players[1].isLeft = players[0].isLeft == true ? false : true;

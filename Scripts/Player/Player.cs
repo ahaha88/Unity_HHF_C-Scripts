@@ -64,9 +64,13 @@ public class Player : MonoBehaviour
     private PlayerState currentStateObj; // 現在のStateに対応するクラスのインスタンス
     public Animator animator { get; private set; }
     public Rigidbody rb { get; private set; }
+
+    [SerializeField]
     private PlayerState[] StateObjects;
-    public IdleAnimBehaviour iab;
-    public AttackAnimBehaviour[] aab;
+    public IdleAnimBehaviour iab {  get; set; }
+    public AttackAnimBehaviour[] aab { get; set; }
+    private TextMeshProUGUI playerInfo;
+
 
     public float[] input { get; private set; } = new float[2]; // 移動の入力 0:x 1:y
     public InputDir inputDir { get; private set; } = InputDir.None; // 現在の入力
@@ -110,6 +114,7 @@ public class Player : MonoBehaviour
         rb = GetComponent<Rigidbody>();
         iab = animator.GetBehaviour<IdleAnimBehaviour>();
         aab = animator.GetBehaviours<AttackAnimBehaviour>();
+        playerInfo = GameObject.Find("PlayerInfo").GetComponent<TextMeshProUGUI>();
 
         GetAllStateComponent();
         SetState(State.Idle);
@@ -120,6 +125,11 @@ public class Player : MonoBehaviour
     private void Update()
     {
         currentStateObj.UpdateState();
+
+        if (PLAYER_NUMBER == 1)
+        {
+            playerInfo.SetText("1P State:" + currentState.ToString() + "\nAttackName: " + currentAttackTag);
+        }
 
         // 移動制限
         if (transform.position.x < -Main.FIELD_END)
@@ -153,7 +163,7 @@ public class Player : MonoBehaviour
         float sin = jumpHeight * Mathf.Sin(2 * Mathf.PI * jumpDeltaTime);
 
         float x = this.transform.position.x;
-        float y = sin > 0 ? Main.START_POS[0].y + sin : Main.START_POS[0].y; // 配列のindexは0でも1でもいい
+        float y = sin > 0 ? Main.START_POS[0].y + sin : Main.START_POS[0].y; // 0 < y < height にする処理、配列のindexは0でも1でもいい
         float z = this.transform.position.z;
 
         this.transform.position = new Vector3(x, y, z);
@@ -279,8 +289,9 @@ public class Player : MonoBehaviour
 
                 SetState(state);
             }
-            else if (attackPhase < 3)
+            else
             {
+                Debug.Log(currentAttackTag + Main.csvm.attackDataDic[currentAttackTag].phase);
                 if (Main.csvm.attackDataDic[currentAttackTag].phase == attackPhase && isGround == true) // 再生中のAnimationのPhaseを確認
                 {
                     // １つのアニメーションに対して再生中に一回しか呼ばれない
