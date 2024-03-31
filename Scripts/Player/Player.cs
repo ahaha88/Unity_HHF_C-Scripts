@@ -16,6 +16,20 @@ using UnityEngine.UIElements;
 /// 基本的にこのクラスはアニメーションの処理やエフェクトの処理、オブジェクトの移動処理などは書かずに各Stateに遷移する際の処理を書くようにする
 /// </summary>
 
+public struct Status
+{
+    public int index {  get; set; }                   // 1P or 2P
+    public MainData.Character character { get; set; } // 着ぐるみの種類
+    public int point { get; set; }                    // 勝ち点
+    public string name { get; set; }                  // ニックネーム
+    public int attackPower { get; set; }              // 攻撃力（キャラクターの人気によって戦いの最中に変動する予定）
+    public int deffencePower { get; set; }            // 防御力（ダメージ計算に使うか未定）
+    public int hitPoint { get; set; }                 // HP
+    public int popularity { get; set; }               // 人気度
+    public int stomack { get; set; }                  // 胃の容量 投げ技のアイテムをビール瓶とする際のパラメーター
+    public int combo { get; set; }                    // コンボの数
+}
+
 public class Player : MonoBehaviour
 {
     // ジョイスティック入力を8方向に変換したもの
@@ -39,7 +53,7 @@ public class Player : MonoBehaviour
     // 各状態を列挙、現在の状態によって対応したクラスが機能する
     public enum State 
     {
-        Idle,          // アニメーション依存（WIN、Lose以外の全てのアニメーションは終了するとIdleに移行する）
+        Idle,          // アニメーション依存（WIN、Lose以外の全てのアニメーションは終了すると勝手にIdleに移行する）
         Punch = 1,     // ボタン依存 コンボ技はアニメーション依存
         Kick = 2,      // ボタン依存 コンボ技はアニメーション依存
         Damaged,       // 当たり判定依存
@@ -62,6 +76,9 @@ public class Player : MonoBehaviour
 
     public State currentState { get; set; } = State.Idle; // 現在のState
     private PlayerState currentStateObj; // 現在のStateに対応するクラスのインスタンス
+
+    public FightingGameManager fgm;
+    public PlayerInput playerInput { get; set; }
     public Animator animator { get; private set; }
     public Rigidbody rb { get; private set; }
 
@@ -69,83 +86,111 @@ public class Player : MonoBehaviour
     private PlayerState[] StateObjects;
     public IdleAnimBehaviour iab {  get; set; }
     public AttackAnimBehaviour[] aab { get; set; }
-    private TextMeshProUGUI playerInfo;
+    private Controls controls;
+
+    [SerializeField]
+    public InputActionMap Map_None {  get; private set; }
 
 
-    public float[] input { get; private set; } = new float[2]; // 移動の入力 0:x 1:y
+
+    public Vector2 input { get; private set; } // 移動の入力
     public InputDir inputDir { get; private set; } = InputDir.None; // 現在の入力
-    public bool wasLeft { get; set; } = true; //切り替わる前の相対位置
+    public bool wasLeft { get; set; } = true; // 切り替わる前の相対位置
     public bool isLeft { get; set; } = true; // 相対的位置 左に位置するか否か
-    public bool reverseBody { get; set; } = false; // 反転待ちの状態かどうか
+    public bool isReverseBody { get; set; } = false; // 反転待ちの状態かどうか
     public bool isInIdleAnim { get; set; } = false; // Idleアニメーションが再生中かどうか
     public float jumpDeltaTime { get; private set; } = 0;
     public float jumpHeight { get; private set; } = 6.5f;
+    private List<string> attackPontTags = new List<string>();
+
+    public Status status = new Status();
 
     // animation parameters
     public int attackPhase { get; set; } = 0; // 攻撃のフェーズ（コンボ攻撃を行うかどうかの指標）
     public string nextAttackType { get; set; }  // コンボ攻撃の次の攻撃　P: Punch, K: Kick (enumの番号による)
     public string currentAttackTag { get; set; } = "none"; // 現在再生している攻撃アニメーションのタグ（文字列""で初期化するとエラーになるため"none"で初期化）
 
-    // player status
-    public int PLAYER_NUMBER { get; private set; } // 1P or 2P
-    public Main.Character CHARA { get; set; }      // 着ぐるみの種類
-    public string NAME { get; set; }               // ニックネーム
-    public int attackPower { get; set; } = 500;    // 攻撃力（キャラクターの人気によって戦いの最中に変動する予定）
-    public int deffencePower { get; set; }         // 防御力（ダメージ計算に使うか未定）
-    public int hitPoint { get; set; } = 10000;     // HP
-    public int popularity { get; set; }            // 人気度
-    public int stomack { get; set; }               // 胃の容量 投げ技のアイテムをビール瓶とする際のパラメーター
-    public int combo { get; set; }                 // コンボの数
+    public Dictionary<string, AttackData> attackDataDic = new Dictionary<string, AttackData>();
+    public Dictionary<string, CharacterData> characterDataDic = new Dictionary<string, CharacterData>();
 
     private void Start()
     {
-        PLAYER_NUMBER = gameObject.tag == "1P" ? 1: 2; // tagに従う
+        playerInput = GetComponent<PlayerInput>();
+        status.index = playerInput.user.index + 1;
+        gameObject.tag = status.index + "P";
         
-        // 2PのPlayerStateScriptsを別のインスタンスとして取得する処理
-        if (PLAYER_NUMBER == 2)
-        {
-            wasLeft = false;
-            isLeft = false;
-            Instantiate(GameObject.FindWithTag("PSScripts_1P")).tag = "PSScripts_2P";
-        }
+        status.character = MainData.CHARACTERS[status.index - 1];
+
+        playerInput.defaultControlScheme = playerInput.currentControlScheme;
+        playerInput.neverAutoSwitchControlSchemes = true;
 
         StateObjects = new PlayerState[Enum.GetValues(typeof(State)).Length];
+
+        fgm = GameObject.FindWithTag("GameManager").GetComponent<FightingGameManager>();
         animator = GetComponent<Animator>();
         rb = GetComponent<Rigidbody>();
         iab = animator.GetBehaviour<IdleAnimBehaviour>();
         aab = animator.GetBehaviours<AttackAnimBehaviour>();
-        playerInfo = GameObject.Find("PlayerInfo").GetComponent<TextMeshProUGUI>();
+        controls = GetComponent<Controls>();
+        controls.enabled = false;
 
+
+
+        transform.position = MainData.START_POS[status.index - 1];
+
+        if (status.index == 2)
+        {
+            isReverseBody = true;
+            animator.SetBool("Mirror", true);
+            Instantiate(GameObject.FindWithTag("PSScripts_1P")).tag = "PSScripts_2P";
+
+            Component[] components = GameObject.FindWithTag("GameManager").GetComponents<MonoBehaviour>();
+            foreach (MonoBehaviour component in components) 
+            {
+                component.enabled = true;
+            }
+
+            MainData.currentGameState = MainData.GameState.NowFighting;
+        }
+
+        playerInput.SwitchCurrentActionMap("None");
         GetAllStateComponent();
         SetState(State.Idle);
+
+        
 
         isFinishedInit = true;
     }
 
     private void Update()
     {
-        currentStateObj.UpdateState();
+        if (MainData.currentGameState == MainData.GameState.Ready) return;
 
-        if (PLAYER_NUMBER == 1)
-        {
-            playerInfo.SetText("1P State:" + currentState.ToString() + "\nAttackName: " + currentAttackTag);
-        }
+        currentStateObj?.UpdateState();
 
         // 移動制限
-        if (transform.position.x < -Main.FIELD_END)
+        if (transform.position.x < -MainData.FIELD_END)
         {
-            transform.position = new Vector3(-Main.FIELD_END, transform.position.y, transform.position.z);
+            transform.position = new Vector3(-MainData.FIELD_END, transform.position.y, transform.position.z);
         }
-        if (transform.position.x > Main.FIELD_END)
+        if (transform.position.x > MainData.FIELD_END)
         {
-            transform.position = new Vector3(Main.FIELD_END, transform.position.y, transform.position.z);
+            transform.position = new Vector3(MainData.FIELD_END, transform.position.y, transform.position.z);
         }
 
         // Player同士の位置が入れ替わった時の処理
         if (wasLeft != isLeft)
         {
-            reverseBody = reverseBody == true ? false : true; // この変数が変更されればidleアニメーション中に反転する
+            isReverseBody = isReverseBody == true ? false : true; // この変数が変更されればidleアニメーション中に反転する
             wasLeft = isLeft;
+            if (isLeft == false)
+            {
+                animator.SetBool("Mirror", true);
+            }
+            else
+            {
+                animator.SetBool("Mirror", false);
+            }
         }
 
         if (isGround == false)
@@ -163,7 +208,7 @@ public class Player : MonoBehaviour
         float sin = jumpHeight * Mathf.Sin(2 * Mathf.PI * jumpDeltaTime);
 
         float x = this.transform.position.x;
-        float y = sin > 0 ? Main.START_POS[0].y + sin : Main.START_POS[0].y; // 0 < y < height にする処理、配列のindexは0でも1でもいい
+        float y = sin > 0 ? MainData.START_POS[0].y + sin : MainData.START_POS[0].y; // 0 < y < height にする処理、配列のindexは0でも1でも変わらない
         float z = this.transform.position.z;
 
         this.transform.position = new Vector3(x, y, z);
@@ -172,11 +217,17 @@ public class Player : MonoBehaviour
     // 現在のStateをSetする関数
     public void SetState(State state)
     {
-        int stateNum = (int)state;
+        if (isFinishedInit == false) { return; }
 
+        int stateNum = (int)state;
         // 前のStateと新しいStateが同じなら何もしない（Damaged以外）
         // currentStateではなくcurrentStateObjで判定するのは一番最初に呼ばれたときcurrentStateObjがnullなるのを防ぐため。
         if (currentStateObj == StateObjects[stateNum] && currentStateObj != StateObjects[(int)State.Damaged])
+        {
+            return;
+        }
+
+        if (ContainState(State.Win, State.Lose) && state != State.Idle)
         {
             return;
         }
@@ -191,7 +242,7 @@ public class Player : MonoBehaviour
         {
             isInIdleAnim = false;
         }
-        Debug.Log(PLAYER_NUMBER + "P currentState: " + currentState);
+        Debug.Log(status.index + "P currentState: " + currentState);
         currentStateObj.EnterState();
     }
 
@@ -202,31 +253,29 @@ public class Player : MonoBehaviour
         float y = ctx.ReadValue<Vector2>().y;
 
         // 入力がデッドゾーン内ならNoneになる（デッドゾーンが円状であることに注意）
-        if (Mathf.Sqrt(x * x + y * y) < Main.DEAD_ZONE)
+        if (Mathf.Sqrt(x * x + y * y) < MainData.DEAD_ZONE)
         {
-            input[0] = 0;
-            input[1] = 0;
+            input = Vector2.zero;
             MoveAction();
             return;
         }
 
-        input[0] = x;
-        input[1] = y;
+        input = new Vector2(x, y);
         MoveAction();
     }
 
     // 移動入力があった時の処理（Idleアニメーションが開始したときも呼ばれる）
     public void MoveAction()
     {
-        float angle = Mathf.Atan2(input[1], input[0]) * Mathf.Rad2Deg; // 弧度法から度数法へ変換した角度
-        angle = Mathf.RoundToInt(angle / 45f); // 16分割した角度
+        float angle = Mathf.Atan2(input.y, input.x) * Mathf.Rad2Deg; // 弧度法から度数法へ変換した角度
+        angle = Mathf.RoundToInt(angle / 45f); // 8分割した角度
         angle = angle < 0 ? angle += 8 : angle; // -180 < thita < 180 から 0 < thita < 360 に変更 (thita : 度数法で表す回転角)
 
         inputDir = (InputDir)angle;
 
-        inputDir = (input[0] == 0 && input[1] == 0) ? InputDir.None : inputDir; // 入力がデッドゾーン内ならあらかじめ0にされる
+        inputDir = (input == Vector2.zero) ? InputDir.None : inputDir; // 入力がデッドゾーン内ならあらかじめ0にされる
 
-        // 攻撃中はinputの値を変化させるだけでstateは変えない
+        // 攻撃中の移動入力はinputの値を変化させるだけでstateは変えない
         if (ContainState(State.Punch, State.Kick, State.Throw, State.Damaged)) return;
 
         if (!(inputDir == InputDir.LwL || inputDir == InputDir.Lw || inputDir == InputDir.LwR)) 
@@ -291,8 +340,10 @@ public class Player : MonoBehaviour
             }
             else
             {
-                Debug.Log(currentAttackTag + Main.csvm.attackDataDic[currentAttackTag].phase);
-                if (Main.csvm.attackDataDic[currentAttackTag].phase == attackPhase && isGround == true) // 再生中のAnimationのPhaseを確認
+                //Debug.Log(currentAttackTag + fgm.attackDataDic[currentAttackTag].phase);
+
+                // 再生中のAnimationのPhaseを確認
+                if (fgm.attackDataDic[currentAttackTag].phase == attackPhase && isGround == true) 
                 {
                     // １つのアニメーションに対して再生中に一回しか呼ばれない
                     currentStateObj.OnStarted(state);
@@ -333,11 +384,23 @@ public class Player : MonoBehaviour
         SetState(State.Damaged);
     }
 
+    public void InitStatus()
+    {
+        // index, character, name はStart()ですでに初期化済み
+        Debug.Log(fgm.characterDataDic.ContainsKey("Bunny"));
+        string chara = "Bunny";
+        status.attackPower = fgm.characterDataDic[chara].ATK;
+        status.deffencePower = fgm.characterDataDic[chara].DEF;
+        status.hitPoint = fgm.characterDataDic[chara].HP_Max;
+        status.popularity = fgm.characterDataDic[chara].POP_Init;
+        status.stomack = 0;
+        status.combo = 0;
+    }
+
     // StateObjectsをすべて取得し初期化
     private void GetAllStateComponent()
     {
-        string playerNum = PLAYER_NUMBER == 1 ? "1P" : "2P";
-        PlayerStateScripts pss = GameObject.FindGameObjectWithTag("PSScripts_" + playerNum).GetComponent<PlayerStateScripts>();
+        PlayerStateScripts pss = GameObject.FindGameObjectWithTag("PSScripts_" + status.index + "P").GetComponent<PlayerStateScripts>();
 
         for (int i = 0; i < Enum.GetValues(typeof(State)).Length; i++)
         {
@@ -372,7 +435,7 @@ public class Player : MonoBehaviour
     private void OnTriggerEnter(Collider collider)
     {
         // 敵のtagの文字列を設定
-        string enemyTag = PLAYER_NUMBER == 1 ? "2P" : "1P";
+        string enemyTag = status.index == 1 ? "2P" : "1P";
 
         //  敵のボディにtriggerが接触したら敵のOnDamaged()を呼ぶ
         if (collider.gameObject.tag == enemyTag)

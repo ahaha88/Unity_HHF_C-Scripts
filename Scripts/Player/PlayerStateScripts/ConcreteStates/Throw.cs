@@ -12,6 +12,10 @@ public class ThrowState : AttackState
     public override void EnterState()
     {
         this.animator.SetTrigger("Throw");
+
+        player.status.popularity += player.fgm.attackDataDic[player.currentAttackTag].pop_damage;
+
+        // stomach
     }
     public override void UpdateState()
     {

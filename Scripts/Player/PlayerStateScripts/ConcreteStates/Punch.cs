@@ -16,6 +16,9 @@ public class PunchState : AttackState
             this.animator.SetTrigger("Punch");
             OnStarted(this.myState);
         }
+
+        player.status.popularity += player.fgm.attackDataDic[player.currentAttackTag].pop_damage;
+        
     }
     public override void UpdateState()
     {

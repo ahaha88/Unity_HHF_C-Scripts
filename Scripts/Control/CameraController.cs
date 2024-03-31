@@ -13,11 +13,19 @@ public class CameraController : MonoBehaviour
     {
         cam = GetComponent<Camera>();
 
-        initialPos = this.gameObject.transform.position;
+        initialPos = MainData.CAMERA_START_POS;
+        this.transform.eulerAngles = MainData.CAMERA_START_ROT;
     }
 
     void Update()
     {
-        this.gameObject.transform.position = new Vector3(Main.midPoint.x, Main.midPoint.y + 3.5f, initialPos.z);
+        if (MainData.currentGameState == MainData.GameState.Ready)
+        {
+            this.transform.position = initialPos;
+        }
+        if (MainData.currentGameState == MainData.GameState.NowFighting)
+        {
+            this.gameObject.transform.position = new Vector3(MainData.midPoint.x, MainData.midPoint.y + 2.5f, initialPos.z);
+        }
     }
 }

@@ -13,9 +13,10 @@ public class LoseState : PlayerState
     {
         this.animator.SetTrigger("Lose");
 
-        if (Main.timeLimit > 0f)
+        player.playerInput.SwitchCurrentActionMap("None");
+        if (MainData.timeLimit > 0f)
         {
-            GameObject.FindWithTag("env").GetComponent<SceneManager>().Judge(this.player);
+            GameObject.FindWithTag("GameManager").GetComponent<FightingGameManager>().Judge(this.player);
         }
     }
 

@@ -12,6 +12,8 @@ public class WinState : PlayerState
     public override void EnterState()
     {
         this.animator.SetTrigger("Win");
+
+        player.playerInput.SwitchCurrentActionMap("None");
     }
     public override void UpdateState()
     {

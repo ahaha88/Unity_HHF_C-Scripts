@@ -14,8 +14,10 @@ public class IdleState : MoveState
 
     public override void EnterState()
     {
-        // EnterIdleAnim()に処理を書く（アニメーション依存の遷移をするため）
+        this.animator.SetBool("Jump", false);
         this.animator.Play("Idle");
+
+        ReverseBody();
     }
 
     public override void UpdateState()
@@ -28,18 +30,23 @@ public class IdleState : MoveState
         {
             this.animator.SetBool("SitDown", false);
 
-            // 反転の処理
-            if (this.player.isGround == true && this.player.reverseBody == true)
-            {
-                this.myObj.transform.Rotate(0f, 180f, 0f);
-                this.player.reverseBody = false;
-            }
+            ReverseBody();
+        }
+    }
+
+    // 反転の処理
+    // アニメーションのフリップモーションはすべてのアニメーションステートに適用するためplayerクラスに記述した
+    private void ReverseBody()
+    {
+        if (this.player.isGround == true && this.player.isReverseBody == true)
+        {
+            this.myObj.transform.Rotate(0f, 180f, 0f);
+            this.player.isReverseBody = false;
         }
     }
 
     public override void ExitState()
     {
-        this.player.isSitDown = false;
         this.animator.SetBool("SitDown", false);
     }
 

@@ -14,23 +14,23 @@ public class DamagedState : PlayerState
         this.myState = Player.State.Damaged;
     }
 
-    private void Start()
-    {
-        
-    }
-
     public override void EnterState()
     {
         this.animator.SetTrigger("Damaged");
-        Player enemy = this.player.PLAYER_NUMBER == 1 ? Main.players[1] : Main.players[0];
 
-        this.player.hitPoint -= Mathf.FloorToInt(enemy.attackPower * Main.csvm.attackDataDic[enemy.currentAttackTag].multiplier);
+        if (MainData.timeLimit <= 0)
+            return;
 
-        if (this.player.hitPoint <= 0)
+        Player enemy = this.player.status.index == 1 ? player.fgm.players[1] : player.fgm.players[0];
+
+        // 相手が使用している攻撃の威力を計算してHPから引く
+        this.player.status.hitPoint -= Mathf.FloorToInt(enemy.status.attackPower * player.fgm.attackDataDic[enemy.currentAttackTag].multiplier);
+        if (this.player.status.hitPoint <= 0)
         {
+            this.player.status.hitPoint = 0;
             Time.timeScale = 0.5f;
 
-            if (this.player.isGround == true) // 一定時間後に呼ぶように要変更
+            if (this.player.isGround == true)
                 this.player.SetState(Player.State.Lose);
         }
     }

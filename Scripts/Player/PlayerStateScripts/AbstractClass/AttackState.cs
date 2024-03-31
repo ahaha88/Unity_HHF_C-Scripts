@@ -13,6 +13,17 @@ public abstract class AttackState : PlayerState
     // AttackStateの派生クラスでPunchボタンかKickボタンが押されたときの処理
     public override void OnStarted(Player.State state)
     {
+        if (this.player.isGround == false)
+        {
+            this.animator.SetBool("Jump", true);
+        }
+
+        if (this.player.isSitDown == true)
+        {
+            this.animator.SetBool("SitDown", true);
+        }
+
+
         this.player.attackPhase++;
         this.animator.SetInteger("AttackPhase", this.player.attackPhase);
 

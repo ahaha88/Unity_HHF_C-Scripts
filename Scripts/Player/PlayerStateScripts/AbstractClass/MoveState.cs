@@ -18,7 +18,7 @@ public abstract class MoveState : PlayerState
 
         float moveAmount = speed * Time.deltaTime;
 
-        if (Main.distance >= Main.MAX_DIST || Mathf.Sqrt(player.transform.position.x) >= Main.FIELD_END)
+        if (MainData.distance >= MainData.MAX_DIST || Mathf.Sqrt(player.transform.position.x) >= MainData.FIELD_END)
         {
             if ((player.isLeft == true && dir == -1) || (player.isLeft == false && dir == 1))
             {
@@ -26,7 +26,7 @@ public abstract class MoveState : PlayerState
             }
         }
 
-        if (Main.distance <= Main.MIN_DIST && this.player.isGround == true)
+        if (MainData.distance <= MainData.MIN_DIST && this.player.isGround == true)
         {
             if ((player.isLeft == true && dir == 1) || (player.isLeft == false && dir == -1))
             {

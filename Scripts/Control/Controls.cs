@@ -5,68 +5,63 @@ using UnityEngine.InputSystem;
 
 public class Controls : MonoBehaviour
 {
-    private PlayerControls controls;
+    private PlayerInput input;
     private Player player;
 
-    private void Awake()
+    // InputSystemのコールバック登録
+    private void OnEnable()
     {
         player = GetComponent<Player>();
-    }
+        input = GetComponent<PlayerInput>();
 
-    // InputSystemのコールバック登録
-    private void Start()
-    {
-        controls = new PlayerControls();
-        
-        if (this.gameObject.tag == "1P")
-        {
-            controls.Player.Enable();
-        }
-
-
-
-        controls.Player.Punch.started += ctx => player.OnAction(ctx, Player.State.Punch);
-        controls.Player.Punch.performed += ctx => player.OnAction(ctx, Player.State.Punch);
-        controls.Player.Punch.canceled += ctx => player.OnAction(ctx, Player.State.Punch);
-
-        controls.Player.Kick.started += ctx => player.OnAction(ctx, Player.State.Kick);
-        controls.Player.Kick.performed += ctx => player.OnAction(ctx, Player.State.Kick);
-        controls.Player.Kick.canceled += ctx => player.OnAction(ctx, Player.State.Kick);
-
-        /*
-                controls.Player.Throw.started += ctx => player.OnThrow(ctx);
-                controls.Player.Throw.performed += ctx => player.OnThrow(ctx);
-                controls.Player.Throw.canceled += ctx => player.OnThrow(ctx);
-        */
-
-        controls.Player.Move.started += ctx => player.OnMove(ctx);
-        controls.Player.Move.performed += ctx => player.OnMove(ctx);
-        controls.Player.Move.canceled += ctx => player.OnMove(ctx);
-
+        RegisterCallback();
     }
 
     // InputSystemのコールバック解除（Controlsクラスに移動予定）
     private void OnDisable()
     {
-        controls.Player.Punch.started -= ctx => player.OnAction(ctx, Player.State.Punch);
-        controls.Player.Punch.performed -= ctx => player.OnAction(ctx, Player.State.Punch);
-        controls.Player.Punch.canceled -= ctx => player.OnAction(ctx, Player.State.Punch);
+        UnregisterCallback();
+    }
 
-        controls.Player.Kick.started -= ctx => player.OnAction(ctx, Player.State.Kick);
-        controls.Player.Kick.performed -= ctx => player.OnAction(ctx, Player.State.Kick);
-        controls.Player.Kick.canceled -= ctx => player.OnAction(ctx, Player.State.Kick);
+    private void RegisterCallback()
+    {
+        input.actions["Punch"].started += ctx => player.OnAction(ctx, Player.State.Punch);
+        input.actions["Punch"].performed += ctx => player.OnAction(ctx, Player.State.Punch);
+        input.actions["Punch"].canceled += ctx => player.OnAction(ctx, Player.State.Punch);
+
+        input.actions["Kick"].started += ctx => player.OnAction(ctx, Player.State.Kick);
+        input.actions["Kick"].performed += ctx => player.OnAction(ctx, Player.State.Kick);
+        input.actions["Kick"].canceled += ctx => player.OnAction(ctx, Player.State.Kick);
 
         /*
-                controls.Player.Throw.started -= ctx => player.OnThrow(ctx);
-                controls.Player.Throw.performed -= ctx => player.OnThrow(ctx);
-                controls.Player.Throw.canceled -= ctx => player.OnThrow(ctx);
+                input.actions["Throw"].started += ctx => player.OnThrow(ctx);
+                input.actions["Throw"].performed += ctx => player.OnThrow(ctx);
+                input.actions["Throw"].canceled += ctx => player.OnThrow(ctx);
         */
 
-        controls.Player.Move.started -= ctx => player.OnMove(ctx);
-        controls.Player.Move.performed -= ctx => player.OnMove(ctx);
-        controls.Player.Move.canceled -= ctx => player.OnMove(ctx);
+        input.actions["Move"].started += ctx => player.OnMove(ctx);
+        input.actions["Move"].performed += ctx => player.OnMove(ctx);
+        input.actions["Move"].canceled += ctx => player.OnMove(ctx);
+    }
 
+    private void UnregisterCallback()
+    {
+        input.actions["Punch"].started -= ctx => player.OnAction(ctx, Player.State.Punch);
+        input.actions["Punch"].performed -= ctx => player.OnAction(ctx, Player.State.Punch);
+        input.actions["Punch"].canceled -= ctx => player.OnAction(ctx, Player.State.Punch);
 
-        controls.Disable();
+        input.actions["Kick"].started -= ctx => player.OnAction(ctx, Player.State.Kick);
+        input.actions["Kick"].performed -= ctx => player.OnAction(ctx, Player.State.Kick);
+        input.actions["Kick"].canceled -= ctx => player.OnAction(ctx, Player.State.Kick);
+
+        /*
+                input.actions["Throw"].started -= ctx => player.OnThrow(ctx);
+                input.actions["Throw"].performed -= ctx => player.OnThrow(ctx);
+                input.actions["Throw"].canceled -= ctx => player.OnThrow(ctx);
+        */
+
+        input.actions["Move"].started -= ctx => player.OnMove(ctx);
+        input.actions["Move"].performed -= ctx => player.OnMove(ctx);
+        input.actions["Move"].canceled -= ctx => player.OnMove(ctx);
     }
 }
